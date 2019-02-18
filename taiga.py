@@ -59,14 +59,16 @@ def main():
         try:
             stats = []
             stats_by_split = {}
-            for split, text in reader(path, train_ratio=args.train_ratio):
+            for group, text in reader(path):
                 text = text.strip()
                 if not text:
                     continue
-                s = {'chars': len(text),
+                s = {'group': group,
+                     'chars': len(text),
                      'lines': len(text.split('\n')),
                      'words': len(text.split(' '))}
                 stats.append(s)
+                split = get_split(group, train_ratio=args.train_ratio)
                 stats_by_split.setdefault(split, []).append(s)
                 split_files[split].write(text)
                 split_files[split].write('\n\n\n')
@@ -78,8 +80,6 @@ def main():
         for split in ['train', 'valid', 'test']:
             print_stats(stats_by_split[split], split)
 
-        break
-
 
 def get_split(name: str, train_ratio: int) -> str:
     n = sum(hashlib.md5(name.encode('utf8')).digest()) % train_ratio
@@ -87,7 +87,8 @@ def get_split(name: str, train_ratio: int) -> str:
 
 
 def print_stats(stats: List[Dict], name: str):
-    print(f'\n{len(stats)} texts in {name}:')
+    n_groups = len({s['group'] for s in stats})
+    print(f'\n{len(stats)} texts, {n_groups} groups in {name}:')
     for key in ['chars', 'words', 'lines']:
         values = sorted(s[key] for s in stats)
         print(f'{key}: '
@@ -100,9 +101,9 @@ def print_stats(stats: List[Dict], name: str):
               f'| sum: {sum(values):,}')
 
 
-def news_reader(path: Path, train_ratio: int):
+def news_reader(path: Path):
     """ Read taiga news corpus, yield (split, text) pairs.
-    Split is done by text.
+    Split is done by name.
     """
     assert path.suffix == '.zip'
     with zipfile.ZipFile(path, 'r') as f:
@@ -111,15 +112,14 @@ def news_reader(path: Path, train_ratio: int):
                 _, ext = name.rsplit('.', 1)
                 if ext == 'txt':
                     text = f.read(name).decode('utf8')
-                    split = get_split(name, train_ratio=train_ratio)
-                    yield split, text
+                    yield name, text
                 elif ext == 'csv':
                     pass
                 else:
                     raise ValueError(f'Unexpected extension for {name}')
 
 
-def subtitles_reader(path: Path, train_ratio: int):
+def subtitles_reader(path: Path):
     """ Read taiga subtitles, yield (split, text) pairs.
     Split is done by series name (all episodes are in one split).
     """
@@ -130,11 +130,10 @@ def subtitles_reader(path: Path, train_ratio: int):
                 name = member.name
                 if name.endswith('.ru.txt') and 'Subtitles/texts/' in name:
                     _, rel_name = name.split('Subtitles/texts/', 1)
-                    series, episode = rel_name.split('/')
-                    split = get_split(series, train_ratio=train_ratio)
+                    series, _episode = rel_name.split('/')
                     text = f.extractfile(member).read().decode('utf8')
                     text = clean_subtitles(text)
-                    yield split, text
+                    yield series, text
 
 
 def clean_subtitles(text: str) -> str:
@@ -182,22 +181,24 @@ def clean_subtitles_line(line: str) -> str:
             '- Не переведено -',
         }:
         return ''
-    for translate_re in [
-            r'^перевод\s',
-            r'^перевод:',
-            r'^переводчики?:',
-            r'^переведено\s',
-            r'^внимание\! этот перевод, возможно, ещё не готов',
-            r'^серию перевели и озвучили',
-            r'^координатор перевода:',
-            r'перевод:?\s+-?\s*[a-z]+',
-            r'перевод:?\s+-?\s*[a-z]+',
-            r'^над переводом работали:',
-            r'перевод на русский:',
-            r'^автор перевода:',
-        ]:
-        if re.search(translate_re, cleaned.lower()):
-            return ''
+    cleaned_lower = cleaned.lower()
+    if 'перев' in cleaned_lower:
+        for translate_re in [
+                r'^перевод\s',
+                r'^перевод:',
+                r'^переводчики?:',
+                r'^переведено\s',
+                r'^внимание\! этот перевод, возможно, ещё не готов',
+                r'^серию перевели и озвучили',
+                r'^координатор перевода:',
+                r'перевод:?\s+-?\s*[a-z]+',
+                r'перевод:?\s+-?\s*[a-z]+',
+                r'^над переводом работали:',
+                r'перевод на русский:',
+                r'^автор перевода:',
+                ]:
+            if re.search(translate_re, cleaned_lower):
+                return ''
     return cleaned.strip()
 
 
