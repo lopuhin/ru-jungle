@@ -16,8 +16,8 @@ import tqdm
 
 ARCHIVES = [
     'Subtitles.tar.gz',
-    'social.tar.gz',
     'news.zip',
+    # 'social.tar.gz',
 ]
 
 
@@ -54,6 +54,7 @@ def main():
         reader = {
             'news.zip': news_reader,
             'Subtitles.tar.gz': subtitles_reader,
+            'social.tar.gz': social_reader,
         }[name]
 
         try:
@@ -120,7 +121,7 @@ def news_reader(path: Path):
 
 
 def subtitles_reader(path: Path):
-    """ Read taiga subtitles, yield (split, text) pairs.
+    """ Read taiga subtitles, yield (group, text) pairs.
     Split is done by series name (all episodes are in one split).
     """
     assert path.name.endswith('.tar.gz')
@@ -222,6 +223,37 @@ def clean_subtitles_lines(lines: List[str]) -> List[str]:
         else:
             cleaned.append(line)
     return cleaned
+
+
+def social_reader(path: Path):
+    """ Read social corpus, yield (group, text) pairs.
+    Split is done by series name (all episodes are in one split).
+    """
+    # FIXME not used
+    # TODO also twitter and LJ
+    assert path.name.endswith('.tar.gz')
+    with gzip.open(path) as gz:
+        with tarfile.TarFile(fileobj=gz) as f:
+            for member in f.getmembers():
+                if member.name.endswith('/texts/fbtexts.txt') or \
+                        member.name.endswith('/tests/vktexts.txt'):
+                    yield from fbvk_reader(f.extractfile(member))
+
+
+def fbvk_reader(f):
+    # FIXME not used: handle authors (especially vk), likes, etc.
+    item_id = None
+    item = []
+    for line in f:
+        line = line.decode('utf8')
+        line = line.strip('\ufeff').strip()
+        if line.startswith('DataBaseItem: ') and len(line.split()) == 2:
+            if item_id is not None:
+                yield item_id, '\n'.join(item)
+            _, item_id = line.split()
+            item = []
+        else:
+            item.append(line)
 
 
 if __name__ == '__main__':
