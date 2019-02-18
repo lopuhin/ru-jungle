@@ -3,11 +3,14 @@ import argparse
 import gzip
 import hashlib
 from pathlib import Path
+import re
 from statistics import mean, median
 import tarfile
 from typing import List, Dict
 import zipfile
 
+import lxml.html
+import lxml.etree
 import tqdm
 
 
@@ -75,8 +78,10 @@ def main():
         for split in ['train', 'valid', 'test']:
             print_stats(stats_by_split[split], split)
 
+        break
 
-def get_split(name: str, train_ratio: int=20) -> str:
+
+def get_split(name: str, train_ratio: int) -> str:
     n = sum(hashlib.md5(name.encode('utf8')).digest()) % train_ratio
     return {0: 'test', 1: 'valid'}.get(n, 'train')
 
@@ -128,7 +133,94 @@ def subtitles_reader(path: Path, train_ratio: int):
                     series, episode = rel_name.split('/')
                     split = get_split(series, train_ratio=train_ratio)
                     text = f.extractfile(member).read().decode('utf8')
+                    text = clean_subtitles(text)
                     yield split, text
+
+
+def clean_subtitles(text: str) -> str:
+    lines = list(map(clean_subtitles_line, text.splitlines()))
+    lines = clean_subtitles_lines(lines)
+    return '\n'.join(lines)
+
+
+def clean_subtitles_line(line: str) -> str:
+    cleaned = line.strip('\ufeff')
+    del line
+    if not cleaned:
+        return ''
+    if 'www.' in cleaned:
+        return ''
+    parts = cleaned.split('\t')
+    assert len(parts) >= 3
+    if len(parts) == 3:
+        return ''
+    # strip first 3 parts: number, start time, end time
+    cleaned = ' '.join(p for p in (p.strip() for p in parts[3:]) if p)
+    # strip html
+    if '<' in cleaned:
+        try:
+            cleaned = ''.join(
+                lxml.html.fromstring(cleaned).xpath('//text()'))
+        except lxml.etree.ParserError:
+            cleaned = cleaned.strip('<>')
+    # strip remaining timestamps
+    cleaned = re.sub(
+        r'\d+'
+        r'\s+'
+        r'\d{2}:\d{2}:\d{2},\d+'
+        r'\s+'
+        r'-->'
+        r'\s+'
+        r'\d{2}:\d{2}:\d{2},\d+'
+        , '', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    if cleaned in {
+            '-',
+            '.',
+            '"идёт перевод"',
+            '"перевод редактируется"',
+            '- Не переведено -',
+        }:
+        return ''
+    for translate_re in [
+            r'^перевод\s',
+            r'^перевод:',
+            r'^переводчики?:',
+            r'^переведено\s',
+            r'^внимание\! этот перевод, возможно, ещё не готов',
+            r'^серию перевели и озвучили',
+            r'^координатор перевода:',
+            r'перевод:?\s+-?\s*[a-z]+',
+            r'перевод:?\s+-?\s*[a-z]+',
+            r'^над переводом работали:',
+            r'перевод на русский:',
+            r'^автор перевода:',
+        ]:
+        if re.search(translate_re, cleaned.lower()):
+            return ''
+    return cleaned.strip()
+
+
+def clean_subtitles_lines(lines: List[str]) -> List[str]:
+    cleaned = []
+    for i, line in enumerate(lines):
+        line = line.strip()
+        next_line = '' if i == len(lines) - 1 else lines[i + 1]
+        prev_line = '' if i == 0 else lines[i - 1]
+        # remove ... \n ...
+        if line.endswith('...') and next_line.startswith('...'):
+            line = line.rstrip('...').strip()
+        if line.startswith('...') and prev_line.endswith('...'):
+            line = line.lstrip('...').strip()
+        # join lines starting with lower case letter
+        # (but lines with ... are not joined)
+        if (i and line and cleaned and
+                line[0].isalpha() and line[0].islower() and
+                not cleaned[-1].endswith('.')):
+            cleaned[-1] = cleaned[-1] + ' ' + line
+        else:
+            cleaned.append(line)
+    return cleaned
 
 
 if __name__ == '__main__':
