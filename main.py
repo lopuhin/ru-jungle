@@ -16,44 +16,58 @@ import tqdm
 
 
 def main():
+    # train_ratio adjusted to get an approximately balanced validation set,
+    # with equal volume of subtitles (taiga-subtitles),
+    # news (taiga-news and rnc-paper) and literature (rnc-main).
     ARCHIVES = [
-        ('rnc-main', 'ruscorpora.tar.gz', partial(rnc_reader, corpus='main')),
-        ('rnc-paper', 'ruscorpora.tar.gz', partial(rnc_reader, corpus='paper')),
-        ('taiga-subtitles', 'Subtitles.tar.gz', taiga_subtitles_reader),
-        ('taiga-news', 'news.zip', taiga_news_reader),
-        # ('taiga-social', 'social.tar.gz', taiga_social_reader),
+        {'out_name': 'taiga-subtitles',
+         'in_name': 'Subtitles.tar.gz',
+         'reader': taiga_subtitles_reader,
+         'train_ratio': 30,  # brittle due to small number of groups
+         },
+        {'out_name': 'taiga-news',
+         'in_name': 'news.zip',
+         'reader': taiga_news_reader,
+         'train_ratio': 170,
+         },
+        {'out_name': 'rnc-main',
+         'in_name': 'ruscorpora.tar.gz',
+         'reader': partial(rnc_reader, corpus='main'),
+         'train_ratio': 300,
+         },
+        {'out_name': 'rnc-paper',
+         'in_name': 'ruscorpora.tar.gz',
+         'reader': partial(rnc_reader, corpus='paper'),
+         'train_ratio': 480,
+         }
     ]
 
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('root', type=Path,
-        help=f'folder with corpus files as archives, supported: '
-        f'{" ".join(sorted({f for _, f, _ in ARCHIVES}))}')
+        help='folder with corpus files as archives, supported: ' +
+        ' '.join(sorted({c['out_name'] for c in ARCHIVES})))
     arg('target', type=Path,
         help='folder where to put train, valid and test files')
-    arg('--train-ratio', type=int, default=20,
-        help='Ratio of train data relative to test or valid: e.g. with default '
-             'value of %(default)s, train will be approximately '
-             '%(default)s times bigger than test and '
-             '%(default)s times bigger than valid.')
     args = parser.parse_args()
+    target: Path = args.target
 
-    for out_name, in_name, reader in ARCHIVES:
-        path: Path = args.root / in_name
+    for corpus in ARCHIVES:
+        path: Path = args.root / corpus['in_name']
         if not path.exists():
             print(f'{path} not found, skipping')
             continue
         split_files = {}
         for split in ['train', 'valid', 'test']:
-            split_path: Path = args.target / out_name / f'{split}.txt'
+            split_path: Path = target / corpus['out_name'] / f'{split}.txt'
             split_path.parent.mkdir(exist_ok=True, parents=True)
             split_files[split] = split_path.open('wt', encoding='utf8')
 
-        print(f'Reading {path} ({out_name})')
+        print(f'\nReading {path} ({corpus["out_name"]})')
         try:
             stats = []
             stats_by_split = {}
-            for group, text in reader(path):
+            for group, text in corpus['reader'](path):
                 text = text.strip()
                 if not text:
                     continue
@@ -62,7 +76,7 @@ def main():
                      'lines': len(text.split('\n')),
                      'words': len(text.split(' '))}
                 stats.append(s)
-                split = get_split(group, train_ratio=args.train_ratio)
+                split = get_split(group, train_ratio=corpus['train_ratio'])
                 stats_by_split.setdefault(split, []).append(s)
                 split_files[split].write(text)
                 split_files[split].write('\n\n\n')
