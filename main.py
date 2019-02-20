@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import gzip
+from functools import partial
 import hashlib
 from pathlib import Path
 import re
 from statistics import mean, median
 import tarfile
-from typing import List, Dict
+from typing import List, Dict, Optional
 import zipfile
 
 import lxml.html
@@ -14,19 +15,20 @@ import lxml.etree
 import tqdm
 
 
-ARCHIVES = [
-    'Subtitles.tar.gz',
-    'news.zip',
-    # 'social.tar.gz',
-]
-
-
 def main():
+    ARCHIVES = [
+        ('rnc-main', 'ruscorpora.tar.gz', partial(rnc_reader, corpus='main')),
+        ('rnc-paper', 'ruscorpora.tar.gz', partial(rnc_reader, corpus='paper')),
+        ('taiga-subtitles', 'Subtitles.tar.gz', taiga_subtitles_reader),
+        ('taiga-news', 'news.zip', taiga_news_reader),
+        # ('taiga-social', 'social.tar.gz', taiga_social_reader),
+    ]
+
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg('taiga_root', type=Path,
-        help=f'folder with taiga corpus files as archives: '
-        f'{" ".join(ARCHIVES)}')
+    arg('root', type=Path,
+        help=f'folder with corpus files as archives, supported: '
+        f'{" ".join(sorted({f for _, f, _ in ARCHIVES}))}')
     arg('target', type=Path,
         help='folder where to put train, valid and test files')
     arg('--train-ratio', type=int, default=20,
@@ -36,27 +38,18 @@ def main():
              '%(default)s times bigger than valid.')
     args = parser.parse_args()
 
-    for name in ARCHIVES:
-        path: Path = args.taiga_root / name
+    for out_name, in_name, reader in ARCHIVES:
+        path: Path = args.root / in_name
         if not path.exists():
             print(f'{path} not found, skipping')
             continue
         split_files = {}
         for split in ['train', 'valid', 'test']:
-            split_path: Path = (
-                args.target /
-                path.name.lower().split('.')[0] /
-                f'{split}.txt')
+            split_path: Path = args.target / out_name / f'{split}.txt'
             split_path.parent.mkdir(exist_ok=True, parents=True)
             split_files[split] = split_path.open('wt', encoding='utf8')
 
-        print(f'Reading {path}')
-        reader = {
-            'news.zip': news_reader,
-            'Subtitles.tar.gz': subtitles_reader,
-            'social.tar.gz': social_reader,
-        }[name]
-
+        print(f'Reading {path} ({out_name})')
         try:
             stats = []
             stats_by_split = {}
@@ -102,7 +95,7 @@ def print_stats(stats: List[Dict], name: str):
               f'| sum: {sum(values):,}')
 
 
-def news_reader(path: Path):
+def taiga_news_reader(path: Path):
     """ Read taiga news corpus, yield (split, text) pairs.
     Split is done by name.
     """
@@ -120,7 +113,7 @@ def news_reader(path: Path):
                     raise ValueError(f'Unexpected extension for {name}')
 
 
-def subtitles_reader(path: Path):
+def taiga_subtitles_reader(path: Path):
     """ Read taiga subtitles, yield (group, text) pairs.
     Split is done by series name (all episodes are in one split).
     """
@@ -225,8 +218,8 @@ def clean_subtitles_lines(lines: List[str]) -> List[str]:
     return cleaned
 
 
-def social_reader(path: Path):
-    """ Read social corpus, yield (group, text) pairs.
+def taiga_social_reader(path: Path):
+    """ Read taiga social corpus, yield (group, text) pairs.
     Split is done by series name (all episodes are in one split).
     """
     # FIXME not used
@@ -254,6 +247,41 @@ def fbvk_reader(f):
             item = []
         else:
             item.append(line)
+
+
+def rnc_reader(path: Path, corpus: str):
+    assert path.name.endswith('.tar.gz')
+    with gzip.open(path) as gz:
+        with tarfile.TarFile(fileobj=gz) as f:
+            for member in tqdm.tqdm(f.getmembers()):
+                name = member.name
+                if '/' not in name:
+                    continue
+                _, corp = name.split('/')[:2]
+                if corp != corpus:
+                    continue
+                if not (name.endswith('.xhtml') or name.endswith('.xml')):
+                    continue
+                try:
+                    root = lxml.etree.parse(f.extractfile(member)).getroot()
+                except Exception as e:
+                    print(f'Failed to parse {name}: {e}')
+                    continue
+                text = rnc_file_reader(root)
+                if text is not None:
+                    yield name, text
+
+
+def rnc_file_reader(root) -> Optional[str]:
+    if any(el.get('content') == 'manual' for el in root.findall('.//meta')):
+        return None  # can't properly recover punctuation
+    elif root.findall('.//ana'):
+        return None  # can't properly recover punctuation
+    else:
+        ns_match = re.match(r'{.*}', root.tag)
+        ns = ns_match.group(0) if ns_match else ''
+        body = root.find(f'{ns}body')
+        return ''.join(body.xpath('.//text()')).strip().replace('--', '—')
 
 
 if __name__ == '__main__':
