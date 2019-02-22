@@ -4,7 +4,13 @@ RU-Jungle: collection of Russian corpora for language model training
 This project prepares clean text corpora for language model training,
 including a train/valid/test split.
 
-Usage:
+Installation
+------------
+
+Use Python 3.6+, install requirements from ``requirements.txt``.
+
+Usage
+-----
 
 - Download Taiga corpora: subtitles and news from
   https://tatianashavrina.github.io/taiga_site/downloads,
@@ -171,6 +177,34 @@ And resulting sizes::
     272M train.txt
      13M valid.txt
 
+
+Examples from the corpora (full output not shown,
+ellipsis at the end added manually)::
+
+    $ head out-balanced/rnc-main/train.txt
+    Псина
+
+
+    У него был блокнот. Толстый такой блокнот с синей обложкой. Ну, вы знаете, эти блокноты — их еще называют «ежедневники». В них есть разделы «кому  позвонить», «что сделать» и «для заметок». В общем,  у него был блокнот. ...
+    ...
+
+    $ head out-balanced/rnc-paper/train.txt
+    Газета "Ведомости" подала в Арбитражный суд Москвы иск к компании "РБК Информационные системы" за нарушение авторских прав. РБК же в ответ предложило акционерам газеты купить ее у них.
+    Российские СМИ нередко обвиняют друг друга в нарушении авторских прав. Они даже пытались создать корпоративный орган, решающий такого рода конфликты. Однако это - первый случай, когда скандал о нарушении авторских прав одного издания в отношении другого развивается публично.
+    ...
+
+    $ head out-balanced/taiga-news/train.txt
+    Госдепартамент США разрешил въезд в страну обладателям действительных виз, ранее попавших под иммиграционный указ президента США Дональда Трампа, сообщает Reuters.
+
+
+            «Мы полностью отменили временное аннулирование виз, — заявила пресс-служба Госдепа. —Те лица, визы которых не были физически аннулированы и в настоящее время действительны, могут путешествовать (по территории США)».
+    ...
+
+    $ head out-balanced/taiga-subtitles/train.txt
+    - Привет, пап. - Доброе утро, девочки.
+    Жаль, меня не было этим утром, чтобы приготовить вам блинчики, но никак не угадаешь, когда малыш надумает родиться.
+    Пап, мы уже знаем, откуда дети берутся.
+    ...
 
 License
 -------
