@@ -45,7 +45,7 @@ Usage:
     ├── train.txt
     └── valid.txt
 
-Note: the test and valid sets have approximaately equal amount of subtitles,
+Note: the test and valid sets have approximately equal amount of subtitles,
 news and literature, while the train parts has more literature.
 
 Full statistics::
@@ -172,3 +172,7 @@ And resulting sizes::
      13M valid.txt
 
 
+License
+-------
+
+License for the code in this repo is MIT. This does not apply to source corpora.
