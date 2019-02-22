@@ -143,32 +143,32 @@ Full statistics::
 And resulting sizes::
 
     $ ls -lh out-balanced/*
-     36M Feb 21 00:24 out-balanced/test.txt
-    7.0G Feb 21 00:25 out-balanced/train.txt
-     37M Feb 21 00:25 out-balanced/valid.txt
+     36M out-balanced/test.txt
+    7.0G out-balanced/train.txt
+     37M out-balanced/valid.txt
 
     out-balanced/rnc-main:
     total 3.1G
-     12M Feb 21 00:18 test.txt
-    3.0G Feb 21 00:18 train.txt
-     13M Feb 21 00:18 valid.txt
+     12M test.txt
+    3.0G train.txt
+     13M valid.txt
 
     out-balanced/rnc-paper:
     total 2.8G
-    6.1M Feb 21 00:23 test.txt
-    2.8G Feb 21 00:23 train.txt
-    5.8M Feb 21 00:23 valid.txt
+    6.1M test.txt
+    2.8G train.txt
+    5.8M valid.txt
 
     out-balanced/taiga-news:
     total 1018M
-     6.0M Feb 21 00:12 test.txt
-    1006M Feb 21 00:12 train.txt
-     6.0M Feb 21 00:12 valid.txt
+     6.0M test.txt
+    1006M train.txt
+     6.0M valid.txt
 
     out-balanced/taiga-subtitles:
     total 295M
-     12M Feb 21 00:10 test.txt
-    272M Feb 21 00:10 train.txt
-     13M Feb 21 00:10 valid.txt
+     12M test.txt
+    272M train.txt
+     13M valid.txt
 
 
