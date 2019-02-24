@@ -49,17 +49,22 @@ def main():
         ' '.join(sorted({c['out_name'] for c in ARCHIVES})))
     arg('target', type=Path,
         help='folder where to put train, valid and test files')
+    arg('--train-as-files', action='store_true',
+        help='put each text in train into a separate file')
     args = parser.parse_args()
     target: Path = args.target
 
     for corpus in ARCHIVES:
         path: Path = args.root / corpus['in_name']
+        corpus_target = target / corpus['out_name']
         if not path.exists():
             print(f'{path} not found, skipping')
             continue
         split_files = {}
         for split in ['train', 'valid', 'test']:
-            split_path: Path = target / corpus['out_name'] / f'{split}.txt'
+            if args.train_as_files and split == 'train':
+                continue
+            split_path: Path = corpus_target / f'{split}.txt'
             split_path.parent.mkdir(exist_ok=True, parents=True)
             split_files[split] = split_path.open('wt', encoding='utf8')
 
@@ -78,8 +83,15 @@ def main():
                 stats.append(s)
                 split = get_split(group, train_ratio=corpus['train_ratio'])
                 stats_by_split.setdefault(split, []).append(s)
-                split_files[split].write(text)
-                split_files[split].write('\n\n\n')
+                to_write = [text, '\n\n\n']
+                if args.train_as_files and split == 'train':
+                    group_id = hashlib.md5(
+                        f'{corpus}-{group}'.encode('utf8')).hexdigest()
+                    (corpus_target / f'train-{group_id}.txt').write_text(
+                        ''.join(to_write), encoding='utf8')
+                else:
+                    for p in to_write:
+                        split_files[split].write(p)
         finally:
             for f in split_files.values():
                 f.close()
