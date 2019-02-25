@@ -72,11 +72,13 @@ def main():
         try:
             stats = []
             stats_by_split = {}
-            for group, text in corpus['reader'](path):
+            seen_file_paths = set()
+            for name, group, text in corpus['reader'](path):
                 text = text.strip()
                 if not text:
                     continue
-                s = {'group': group,
+                s = {'name': name,
+                     'group': group,
                      'chars': len(text),
                      'lines': len(text.split('\n')),
                      'words': len(text.split(' '))}
@@ -85,10 +87,13 @@ def main():
                 stats_by_split.setdefault(split, []).append(s)
                 to_write = [text, '\n\n\n']
                 if args.train_as_files and split == 'train':
-                    group_id = hashlib.md5(
-                        f'{corpus}-{group}'.encode('utf8')).hexdigest()
-                    (corpus_target / f'train-{group_id}.txt').write_text(
-                        ''.join(to_write), encoding='utf8')
+                    file_id = hashlib.md5(
+                        f'{corpus}-{name}'.encode('utf8')).hexdigest()
+                    file_path = corpus_target / f'train-{file_id}.txt'
+                    file_path.write_text(''.join(to_write), encoding='utf8')
+                    if file_path in seen_file_paths:
+                        print(f'Duplicate file_path: {file_path}')
+                    seen_file_paths.add(file_path)
                 else:
                     for p in to_write:
                         split_files[split].write(p)
@@ -132,7 +137,7 @@ def taiga_news_reader(path: Path):
                 _, ext = name.rsplit('.', 1)
                 if ext == 'txt':
                     text = f.read(name).decode('utf8')
-                    yield name, text
+                    yield name, name, text
                 elif ext == 'csv':
                     pass
                 else:
@@ -153,7 +158,7 @@ def taiga_subtitles_reader(path: Path):
                     series, _episode = rel_name.split('/')
                     text = f.extractfile(member).read().decode('utf8')
                     text = clean_subtitles(text)
-                    yield series, text
+                    yield name, series, text
 
 
 def clean_subtitles(text: str) -> str:
@@ -268,7 +273,7 @@ def fbvk_reader(f):
         line = line.strip('\ufeff').strip()
         if line.startswith('DataBaseItem: ') and len(line.split()) == 2:
             if item_id is not None:
-                yield item_id, '\n'.join(item)
+                yield item_id, item_id, '\n'.join(item)
             _, item_id = line.split()
             item = []
         else:
@@ -295,7 +300,7 @@ def rnc_reader(path: Path, corpus: str):
                     continue
                 text = rnc_file_reader(root)
                 if text is not None:
-                    yield name, text
+                    yield name, name, text
 
 
 def rnc_file_reader(root) -> Optional[str]:
