@@ -3,6 +3,7 @@ import argparse
 from pathlib import Path
 
 import sentencepiece as spm
+import tqdm
 
 
 def main():
@@ -19,7 +20,8 @@ def main():
     for corpus_folder in Path(args.source).iterdir():
         if not corpus_folder.is_dir():
             continue
-        for source_path in corpus_folder.glob('*.txt'):
+        for source_path in tqdm.tqdm(list(corpus_folder.glob('*.txt')),
+                                     desc=corpus_folder.name):
             target_path = (
                 Path(args.target) / corpus_folder.name / source_path.name)
             target_path.parent.mkdir(parents=True, exist_ok=True)
