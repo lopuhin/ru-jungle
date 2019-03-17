@@ -12,12 +12,19 @@ Use Python 3.6+, install requirements from ``requirements.txt``.
 Usage
 -----
 
+Source corpora
+++++++++++++++
+
 - Download Taiga corpora: subtitles and news from
   https://tatianashavrina.github.io/taiga_site/downloads,
   expected file names are ``Subtitles.tar.gz`` and ``news.zip``
 - Obtain RNC corpus, expected file name is ``ruscorpora.tar.gz``
   (note: the plan is to have a version based entirely on Taiga).
 - Put all corpora in one folder, ``./corpora`` is used as an example
+
+Creating corpora with all texts in one file
++++++++++++++++++++++++++++++++++++++++++++
+
 - Create text::
 
     ./main.py ./corpora/ ./out-balanced/
@@ -205,6 +212,17 @@ ellipsis at the end added manually)::
     Жаль, меня не было этим утром, чтобы приготовить вам блинчики, но никак не угадаешь, когда малыш надумает родиться.
     Пап, мы уже знаем, откуда дети берутся.
     ...
+
+
+Creating corpora with texts in separate files
++++++++++++++++++++++++++++++++++++++++++++++
+
+Use same source corpora, and then run::
+
+    ./main.py ./corpora/ ./out-as-files/ --as-files
+
+
+Resulting structure: ``copus-name/train|valid|test/hash-part/hash.txt``.
 
 License
 -------

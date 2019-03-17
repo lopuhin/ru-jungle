@@ -49,8 +49,10 @@ def main():
         ' '.join(sorted({c['out_name'] for c in ARCHIVES})))
     arg('target', type=Path,
         help='folder where to put train, valid and test files')
-    arg('--train-as-files', action='store_true',
-        help='put each text in train into a separate file')
+    arg('--end-of-text', default='\n\n',
+        help='symbol to write at the end of text (not used with --as-files)')
+    arg('--as-files', action='store_true',
+        help='put each text into a separate file')
     args = parser.parse_args()
     target: Path = args.target
 
@@ -61,12 +63,11 @@ def main():
             print(f'{path} not found, skipping')
             continue
         split_files = {}
-        for split in ['train', 'valid', 'test']:
-            if args.train_as_files and split == 'train':
-                continue
-            split_path: Path = corpus_target / f'{split}.txt'
-            split_path.parent.mkdir(exist_ok=True, parents=True)
-            split_files[split] = split_path.open('wt', encoding='utf8')
+        if not args.as_files:
+            for split in ['train', 'valid', 'test']:
+                split_path: Path = corpus_target / f'{split}.txt'
+                split_path.parent.mkdir(exist_ok=True, parents=True)
+                split_files[split] = split_path.open('wt', encoding='utf8')
 
         print(f'\nReading {path} ({corpus["out_name"]})')
         try:
@@ -74,29 +75,30 @@ def main():
             stats_by_split = {}
             seen_file_paths = set()
             for name, group, text in corpus['reader'](path):
-                text = text.strip()
+                text = normalize_text(text)
                 if not text:
                     continue
                 s = {'name': name,
                      'group': group,
                      'chars': len(text),
                      'lines': len(text.split('\n')),
-                     'words': len(text.split(' '))}
+                     'words': len(text.split())}
                 stats.append(s)
                 split = get_split(group, train_ratio=corpus['train_ratio'])
                 stats_by_split.setdefault(split, []).append(s)
-                to_write = [text, '\n\n\n']
-                if args.train_as_files and split == 'train':
-                    file_id = hashlib.md5(
-                        f'{corpus}-{name}'.encode('utf8')).hexdigest()
-                    file_path = corpus_target / f'train-{file_id}.txt'
-                    file_path.write_text(''.join(to_write), encoding='utf8')
+                if args.as_files:
+                    file_id = hashlib.md5(f'{corpus["out_name"]}-{name}'
+                                          .encode('utf8')).hexdigest()
+                    file_path = (
+                        corpus_target / split / file_id[:2] / f'{file_id}.txt')
+                    file_path.parent.mkdir(exist_ok=True, parents=True)
+                    file_path.write_text(text, encoding='utf8')
                     if file_path in seen_file_paths:
                         print(f'Duplicate file_path: {file_path}')
                     seen_file_paths.add(file_path)
                 else:
-                    for p in to_write:
-                        split_files[split].write(p)
+                    split_files[split].write(text)
+                    split_files[split].write(args.end_of_text)
         finally:
             for f in split_files.values():
                 f.close()
@@ -104,6 +106,14 @@ def main():
         print_stats(stats, 'all')
         for split in ['train', 'valid', 'test']:
             print_stats(stats_by_split[split], split)
+
+
+def normalize_text(text: str) -> str:
+    text = text.strip()
+    text = re.sub(r'\r\n', '\n', text)
+    text = re.sub(r'\n[ \t]+', '\n', text)
+    text = re.sub(r'\n\n+', '\n\n', text)
+    return text + '\n'
 
 
 def get_split(name: str, train_ratio: int) -> str:
@@ -119,6 +129,8 @@ def print_stats(stats: List[Dict], name: str):
         print(f'{key}: '
               f'mean: {mean(values):.1f} '
               f'| min: {min(values)} '
+              f'| 1%: {values[int(len(values) * 0.01)]} '
+              f'| 5%: {values[int(len(values) * 0.05)]} '
               f'| median: {median(values)} '
               f'| 95%: {values[int(len(values) * 0.95)]} '
               f'| 99%: {values[int(len(values) * 0.99)]} '
@@ -312,7 +324,10 @@ def rnc_file_reader(root) -> Optional[str]:
         ns_match = re.match(r'{.*}', root.tag)
         ns = ns_match.group(0) if ns_match else ''
         body = root.find(f'{ns}body')
-        return ''.join(body.xpath('.//text()')).strip().replace('--', '—')
+        return '\n'.join(
+            re.sub(r'\s+', ' ', paragraph.strip().replace('--', '—'))
+            for paragraph in body.xpath('.//text()')
+            if paragraph != '\n')
 
 
 if __name__ == '__main__':
