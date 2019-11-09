@@ -21,7 +21,7 @@ def main():
         {'out_name': 'taiga-proza',
          'in_name': 'proza_ru.zip',
          'reader': taiga_proza_reader,
-         'train_ratio': 500,
+         'train_ratio': 2500,
          },
         {'out_name': 'taiga-subtitles',
          'in_name': 'Subtitles.tar.gz',
