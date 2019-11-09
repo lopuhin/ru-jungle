@@ -16,10 +16,13 @@ import tqdm
 
 
 def main():
-    # train_ratio adjusted to get an approximately balanced validation set,
-    # with equal volume of subtitles (taiga-subtitles),
-    # news (taiga-news and rnc-paper) and literature (rnc-main).
+    # train_ratio adjusted to get an approximately balanced validation set
     ARCHIVES = [
+        {'out_name': 'taiga-proza',
+         'in_name': 'proza_ru.zip',
+         'reader': taiga_proza_reader,
+         'train_ratio': 500,
+         },
         {'out_name': 'taiga-subtitles',
          'in_name': 'Subtitles.tar.gz',
          'reader': taiga_subtitles_reader,
@@ -274,6 +277,21 @@ def taiga_social_reader(path: Path):
                 if member.name.endswith('/texts/fbtexts.txt') or \
                         member.name.endswith('/tests/vktexts.txt'):
                     yield from fbvk_reader(f.extractfile(member))
+
+
+def taiga_proza_reader(path: Path):
+    with zipfile.ZipFile(path, 'r') as f:
+        for name in tqdm.tqdm(f.namelist(), desc=str(path)):
+            if not name.endswith('.txt') or 'texts/' not in name:
+                continue
+            text = f.read(name).decode('utf8')
+            lines = []
+            prefix = '# text = '
+            for line in text.split('\n'):
+                if line.startswith(prefix):
+                    lines.append(line[len(prefix):].strip())
+            # it's a pity that we don't have line breaks
+            yield name, name, ' '.join(lines)
 
 
 def fbvk_reader(f):

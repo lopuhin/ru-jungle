@@ -17,7 +17,9 @@ Source corpora
 
 - Download Taiga corpora: subtitles and news from
   https://tatianashavrina.github.io/taiga_site/downloads,
-  expected file names are ``Subtitles.tar.gz`` and ``news.zip``
+  expected file names are ``Subtitles.tar.gz`` and ``news.zip``.
+  Also supported ``proza_ru.zip`` which you can obtain by downloading
+  and extracting the full corpus file.
 - Obtain RNC corpus, expected file name is ``ruscorpora.tar.gz``
   (note: the plan is to have a version based entirely on Taiga).
 - Put all corpora in one folder, ``./corpora`` is used as an example
