@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import bz2
 import gzip
+import json
 from functools import partial
 import hashlib
 from pathlib import Path
@@ -42,6 +44,11 @@ def main():
          'in_name': 'ruscorpora.tar.gz',
          'reader': partial(rnc_reader, corpus='paper'),
          'train_ratio': 480,
+         },
+        {'out_name': 'ruwiki',
+         'in_name': 'ruwiki',
+         'reader': wiki_reader,
+         'train_ratio': 1000,  # TODO check balance
          }
     ]
 
@@ -346,6 +353,16 @@ def rnc_file_reader(root) -> Optional[str]:
             re.sub(r'\s+', ' ', paragraph.strip().replace('--', '—'))
             for paragraph in body.xpath('.//text()')
             if paragraph != '\n')
+
+
+def wiki_reader(root_path: Path):
+    for path in tqdm.tqdm(list(root_path.glob('**/*.bz2'))):
+        with bz2.open(path, 'rt', encoding='utf8') as f:
+            for line in f:
+                item = json.loads(line)
+                text = item['text']
+                text = text.replace('<br>', '\n')
+                yield item['id'], item['id'], text
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ All parts are optional.
   Also supported ``proza_ru.zip`` which you can obtain by downloading
   and extracting the full corpus file.
 - RNC corpus: expected file name is ``ruscorpora.tar.gz``
-- Russian Wikipedia [WIP]: download the dump::
+- Russian Wikipedia: download the dump::
 
     wget http://dumps.wikimedia.org/ruwiki/latest/ruwiki-latest-pages-articles.xml.bz2
 
@@ -32,7 +32,7 @@ All parts are optional.
 
     cd wikiextractor
     ./WikiExtractor.py ../ruwiki-latest-pages-articles.xml.bz2 --processes 8 --json \
-        --output ../corpora/ruwiki --compress --keep_tables --quiet
+        --output ../corpora/ruwiki --compress --min_text_length 100 --quiet
 
 
 Creating corpora with all texts in one file
