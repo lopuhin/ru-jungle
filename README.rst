@@ -170,37 +170,59 @@ Full statistics::
     words: mean: 518.8 | min: 3 | median: 413.0 | 95%: 1207 | 99%: 2105 | max: 7854 | sum: 481,405
     lines: mean: 15.7 | min: 1 | median: 9.0 | 95%: 45 | 99%: 105 | max: 491 | sum: 14,543
 
+    Reading corpora/ruwiki (ruwiki)
+
+    1451587 texts, 1451587 groups in all:
+    chars: mean: 2300.0 | min: 77 | 1%: 128 | 5%: 224 | median: 1147 | 95%: 7567 | 99%: 19596 | max: 430600 | sum: 3,338,636,452
+    words: mean: 315.8 | min: 4 | 1%: 17 | 5%: 30 | median: 158 | 95%: 1035 | 99%: 2679 | max: 55739 | sum: 458,355,737
+    lines: mean: 17.4 | min: 2 | 1%: 4 | 5%: 4 | median: 12 | 95%: 46 | 99%: 100 | max: 2866 | sum: 25,186,286
+
+    1447729 texts, 1447729 groups in train:
+    chars: mean: 2299.4 | min: 77 | 1%: 128 | 5%: 224 | median: 1147 | 95%: 7565 | 99%: 19576 | max: 430600 | sum: 3,328,875,401
+    words: mean: 315.7 | min: 4 | 1%: 17 | 5%: 30 | median: 158 | 95%: 1035 | 99%: 2678 | max: 55739 | sum: 457,020,952
+    lines: mean: 17.3 | min: 2 | 1%: 4 | 5%: 4 | median: 12 | 95%: 46 | 99%: 100 | max: 2866 | sum: 25,116,486
+
+    1951 texts, 1951 groups in valid:
+    chars: mean: 2562.5 | min: 103 | 1%: 137 | 5%: 234 | median: 1155 | 95%: 8236 | 99%: 25811 | max: 131951 | sum: 4,999,481
+    words: mean: 350.4 | min: 10 | 1%: 18 | 5%: 32 | median: 161 | 95%: 1148 | 99%: 3524 | max: 17297 | sum: 683,605
+    lines: mean: 18.1 | min: 4 | 1%: 4 | 5%: 4 | median: 12 | 95%: 50 | 99%: 111 | max: 551 | sum: 35,386
+
+    1907 texts, 1907 groups in test:
+    chars: mean: 2496.9 | min: 103 | 1%: 128 | 5%: 231 | median: 1118 | 95%: 8317 | 99%: 26431 | max: 82053 | sum: 4,761,570
+    words: mean: 341.5 | min: 10 | 1%: 17 | 5%: 31 | median: 155 | 95%: 1162 | 99%: 3683 | max: 10076 | sum: 651,180
+    lines: mean: 18.0 | min: 4 | 1%: 4 | 5%: 4 | median: 12 | 95%: 48 | 99%: 121 | max: 323 | sum: 34,414
+
 And resulting sizes::
 
-    $ ls -lh out-balanced/*
-     36M out-balanced/test.txt
-    7.0G out-balanced/train.txt
-     37M out-balanced/valid.txt
-
-    out-balanced/rnc-main:
+    rnc-main:
     total 3.1G
      12M test.txt
     3.0G train.txt
      13M valid.txt
 
-    out-balanced/rnc-paper:
+    rnc-paper:
     total 2.8G
     6.1M test.txt
     2.8G train.txt
     5.8M valid.txt
 
-    out-balanced/taiga-news:
+    taiga-news:
     total 1018M
      6.0M test.txt
     1006M train.txt
      6.0M valid.txt
 
-    out-balanced/taiga-subtitles:
+    taiga-subtitles:
     total 295M
      12M test.txt
     272M train.txt
      13M valid.txt
 
+    ruwiki:
+    total 9.0G
+     14M test
+     15M valid
+    9.0G train
 
 Examples from the corpora (full output not shown,
 ellipsis at the end added manually)::
