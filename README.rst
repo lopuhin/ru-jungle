@@ -15,14 +15,25 @@ Usage
 Source corpora
 ++++++++++++++
 
-- Download Taiga corpora: subtitles and news from
+Put all corpora in one folder, ``./corpora`` is used as an example below.
+All parts are optional.
+
+- Taiga corpora: download subtitles and news from
   https://tatianashavrina.github.io/taiga_site/downloads,
   expected file names are ``Subtitles.tar.gz`` and ``news.zip``.
   Also supported ``proza_ru.zip`` which you can obtain by downloading
   and extracting the full corpus file.
-- Obtain RNC corpus, expected file name is ``ruscorpora.tar.gz``
-  (note: the plan is to have a version based entirely on Taiga).
-- Put all corpora in one folder, ``./corpora`` is used as an example
+- RNC corpus: expected file name is ``ruscorpora.tar.gz``
+- Russian Wikipedia [WIP]: download the dump::
+
+    wget http://dumps.wikimedia.org/ruwiki/latest/ruwiki-latest-pages-articles.xml.bz2
+
+  then parse it::
+
+    cd wikiextractor
+    ./WikiExtractor.py ../ruwiki-latest-pages-articles.xml.bz2 --processes 8 --json \
+        --output ../corpora/ruwiki --compress --keep_tables --quiet
+
 
 Creating corpora with all texts in one file
 +++++++++++++++++++++++++++++++++++++++++++
@@ -30,6 +41,10 @@ Creating corpora with all texts in one file
 - Create text::
 
     ./main.py ./corpora/ ./out-balanced/
+
+  optionally it's possible to keep each document as a separate file (see next section)::
+
+    ./main.py ./corpora/ ./out-as-files/ --as-files
 
 - Collect train, test and valid across subcorpora::
 
